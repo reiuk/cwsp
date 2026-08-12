@@ -1,5 +1,5 @@
 /**
- * Simulation engine — Strang operator splitting orchestration.
+ * Simulation engine: Strang operator splitting orchestration.
  *
  * Per tick (1 simulated hour):
  *   R(dt/2)  →  Reactions (local ODEs, sub-stepped)
@@ -75,7 +75,7 @@ export function createSimulation(
  * In wound surface zones, diffusion is blocked where substrate is insufficient.
  * This couples re-epithelialization to granulation tissue formation and prevents
  * keratinocytes from advancing into unsupported wound bed regions (which would
- * cause subsequent anoikis-driven die-off — a non-physical artifact).
+ * cause subsequent anoikis-driven die-off, a non-physical artifact).
  */
 function updateKeratMask(
   keratMask: Uint8Array,
@@ -121,7 +121,7 @@ function updateKeratMask(
 
 /**
  * Update bacterial diffusion mask based on tissue damage state.
- * Bacteria can only diffuse through damaged tissue — intact tissue with
+ * Bacteria can only diffuse through damaged tissue; intact tissue with
  * functional epithelial barriers, intact ECM, and resident immune surveillance
  * is impermeable to bacterial spread. The mask is permissive where tissue
  * shows damage indicators (fibrin presence, collagen loss, vascular damage).
@@ -156,7 +156,7 @@ export function stepSimulation(state: SimulationState): void {
 
   const vascCap = scenario.vascularDensityMultiplier;
 
-  // R(dt/2) — first half-step of reactions
+  // R(dt/2): first half-step of reactions
   applyReactions(
     fields, tissueMap, params, dt * 0.5,
     state.tick, scenario.antibioticStartTick, scenario.antibioticDose, vascCap,
@@ -167,10 +167,10 @@ export function stepSimulation(state: SimulationState): void {
   // unsupported wound surface zones.
   updateKeratMask(keratMask, fields, tissueMap);
 
-  // Update bacterial diffusion mask — bacteria cannot spread through intact tissue.
+  // Update bacterial diffusion mask: bacteria cannot spread through intact tissue.
   updateBacMask(bacMask, fields, tissueMap);
 
-  // D(dt) — diffusion (ADI, full step)
+  // D(dt): diffusion (ADI, full step)
   for (const fieldName of DIFFUSING_FIELDS) {
     const D = params.diffusion[fieldName];
     if (D > 0) {
@@ -181,10 +181,10 @@ export function stepSimulation(state: SimulationState): void {
     }
   }
 
-  // C(dt) — chemotaxis (upwind, full step)
+  // C(dt): chemotaxis (upwind, full step)
   applyAllChemotaxis(fields, params.chemotaxis, dt, keratMask);
 
-  // R(dt/2) — second half-step of reactions
+  // R(dt/2): second half-step of reactions
   applyReactions(
     fields, tissueMap, params, dt * 0.5,
     state.tick, scenario.antibioticStartTick, scenario.antibioticDose, vascCap,

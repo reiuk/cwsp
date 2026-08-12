@@ -1,6 +1,6 @@
 /**
  * ADI (Alternating Direction Implicit) diffusion solver.
- * Peaceman-Rachford scheme — unconditionally stable, O(N) per line.
+ * Peaceman-Rachford scheme: unconditionally stable, O(N) per line.
  *
  * For the 2D diffusion equation:
  *   du/dt = D * (d²u/dx² + d²u/dy²)
@@ -35,7 +35,7 @@ const uStar = new Float64Array(NX * NY);
 /**
  * Get effective neighbor value for diffusion, respecting mask.
  * If the neighbor is masked out (mask=0), return the current cell value
- * (Neumann boundary — zero flux).
+ * (Neumann boundary: zero flux).
  */
 function maskedNeighbor(
   field: Float64Array,

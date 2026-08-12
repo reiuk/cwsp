@@ -1,65 +1,131 @@
-import { useRef, useState, useCallback, useEffect } from 'react';
-import { SimulationFields, OverlayMode, NX, NY } from '../simulation/types';
-import { useCanvasRenderer } from '../hooks/useCanvasRenderer';
-
-const ASPECT_RATIO = NX / NY; // 2:1
+import { memo, useRef, useState, useCallback, useEffect } from 'react';
+import { OverlayMode } from '../simulation/types';
+import {
+  useCanvasRenderer, fitFigure, FigureGeometry,
+  DOMAIN_W_MM, DOMAIN_H_MM, MM_PER_CELL, WOUND,
+} from '../hooks/useCanvasRenderer';
+import type { FrameListener } from '../hooks/useSimulation';
+import { c, font } from '../theme';
 
 interface Props {
-  fields: SimulationFields | null;
+  subscribeFrame: (listener: FrameListener) => () => void;
   overlay: OverlayMode;
 }
 
-export function WoundCanvas({ fields, overlay }: Props) {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const containerRef = useRef<HTMLDivElement>(null);
-  const [displaySize, setDisplaySize] = useState({ width: 700, height: 350 });
+const woundWmm = (WOUND.right - WOUND.left) * MM_PER_CELL;
+const woundDmm = WOUND.depth * MM_PER_CELL;
 
-  const updateSize = useCallback(() => {
-    if (!containerRef.current) return;
-    const containerWidth = containerRef.current.clientWidth;
-    const width = containerWidth;
-    const height = Math.round(width / ASPECT_RATIO);
-    setDisplaySize({ width, height });
+/** Memoized: playback must never re-render this component. Frames reach the
+ *  canvas through `subscribeFrame`, which is stable for the life of the app. */
+export const WoundCanvas = memo(function WoundCanvas({ subscribeFrame, overlay }: Props) {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const boxRef = useRef<HTMLDivElement>(null);
+  const [geom, setGeom] = useState<FigureGeometry | null>(null);
+
+  // The figure is a follower of the space it is given: it never sets its own
+  // height from its own width, which is what used to push the page past 100vh.
+  const measure = useCallback(() => {
+    const box = boxRef.current;
+    if (!box) return;
+    const next = fitFigure(box.clientWidth, box.clientHeight, window.devicePixelRatio || 1);
+    setGeom(prev => {
+      if (prev && next && prev.cell === next.cell
+        && prev.cssWidth === next.cssWidth && prev.cssHeight === next.cssHeight) return prev;
+      return next;
+    });
   }, []);
 
   useEffect(() => {
-    updateSize();
-    const observer = new ResizeObserver(updateSize);
-    if (containerRef.current) observer.observe(containerRef.current);
-    return () => observer.disconnect();
-  }, [updateSize]);
+    measure();
+    const observer = new ResizeObserver(measure);
+    if (boxRef.current) observer.observe(boxRef.current);
+    window.addEventListener('resize', measure);
+    return () => {
+      observer.disconnect();
+      window.removeEventListener('resize', measure);
+    };
+  }, [measure]);
 
-  useCanvasRenderer(canvasRef, fields, overlay, displaySize.width, displaySize.height);
+  useCanvasRenderer(canvasRef, subscribeFrame, overlay, geom);
 
   return (
-    <div ref={containerRef} style={{ position: 'relative', width: '100%' }}>
-      <canvas
-        ref={canvasRef}
-        width={displaySize.width}
-        height={displaySize.height}
+    <div style={{
+      flex: 1,
+      minHeight: 0,
+      display: 'flex',
+      flexDirection: 'column',
+      gap: 8,
+    }}>
+      <div
+        ref={boxRef}
         style={{
-          width: '100%',
-          height: displaySize.height,
-          border: '1px solid #444',
-          borderRadius: 4,
-          background: '#1a1a1a',
-          display: 'block',
+          flex: 1,
+          minHeight: 0,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          overflow: 'hidden',
         }}
-      />
-      <OverlayLegend overlay={overlay} />
+      >
+        <canvas
+          ref={canvasRef}
+          style={{
+            width: geom ? geom.cssWidth : 0,
+            height: geom ? geom.cssHeight : 0,
+            display: 'block',
+          }}
+        />
+        {!geom && (
+          <span style={{ color: c.faint, fontSize: 11.5, textAlign: 'center' }}>
+            Not enough room to draw the section. Give the window more height.
+          </span>
+        )}
+      </div>
+
+      <div style={{
+        display: 'flex',
+        alignItems: 'baseline',
+        justifyContent: 'space-between',
+        gap: 16,
+        flexWrap: 'wrap',
+      }}>
+        <OverlayLegend overlay={overlay} />
+        <span style={{
+          color: c.faint,
+          fontSize: 10.5,
+          fontFamily: font.mono,
+          whiteSpace: 'nowrap',
+        }}>
+          {DOMAIN_W_MM} × {DOMAIN_H_MM} mm section · {MM_PER_CELL} mm/cell
+        </span>
+      </div>
     </div>
   );
-}
+});
 
 function OverlayLegend({ overlay }: { overlay: OverlayMode }) {
+  const defect = (
+    <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+      <span style={{
+        width: 14,
+        borderTop: `1px dashed rgba(255,255,255,0.55)`,
+        display: 'inline-block',
+      }} />
+      <span style={{ fontSize: 11, color: c.dim }}>
+        initial defect ({woundWmm} × {woundDmm} mm)
+      </span>
+    </span>
+  );
+
   if (overlay === 'tissue') {
     return (
       <div style={legendStyle}>
-        <LegendItem color="#dc8c96" label="Keratinocytes" />
-        <LegendItem color="#6864d2" label="Collagen" />
-        <LegendItem color="#dcbe32" label="Fibrin" />
-        <LegendItem color="#50dc28" label="Bacteria" />
-        <LegendItem color="#ffffff" label="Immune cells" />
+        <LegendSwatch color="#e67a8a" label="Keratinocytes" />
+        <LegendSwatch color="#b09e90" label="Collagen" />
+        <LegendSwatch color="#d8b048" label="Fibrin" />
+        <LegendSwatch color="#58d034" label="Bacteria" />
+        <LegendSwatch color="#ffffff" label="Immune cells" />
+        {defect}
       </div>
     );
   }
@@ -70,43 +136,48 @@ function OverlayLegend({ overlay }: { overlay: OverlayMode }) {
     inflammatory: ['Low TNF-α', 'High TNF-α'],
     collagen: ['None', 'Dense'],
   };
+  const gradients: Record<string, string> = {
+    oxygen: 'linear-gradient(to right, #1e3cc8, #dc2828)',
+    bacterial: 'linear-gradient(to right, #141414, #c8dc1e)',
+    inflammatory: 'linear-gradient(to right, #2828b4, #e63232)',
+    collagen: 'linear-gradient(to right, #141428, #6450dc)',
+  };
   const [low, high] = labels[overlay] || ['Low', 'High'];
 
   return (
     <div style={legendStyle}>
-      <span style={{ fontSize: 11, color: '#aaa' }}>{low}</span>
+      <span style={{ fontSize: 11, color: c.dim }}>{low}</span>
       <div style={{
-        width: 100, height: 12,
-        background: overlay === 'oxygen'
-          ? 'linear-gradient(to right, #1e3cc8, #dc2828)'
-          : overlay === 'bacterial'
-            ? 'linear-gradient(to right, #141414, #c8dc1e)'
-            : overlay === 'inflammatory'
-              ? 'linear-gradient(to right, #2828b4, #e63232)'
-              : 'linear-gradient(to right, #141428, #6450dc)',
+        width: 110,
+        height: 10,
+        background: gradients[overlay],
         borderRadius: 2,
+        border: `1px solid ${c.line}`,
       }} />
-      <span style={{ fontSize: 11, color: '#aaa' }}>{high}</span>
+      <span style={{ fontSize: 11, color: c.dim }}>{high}</span>
+      {defect}
     </div>
   );
 }
 
-function LegendItem({ color, label }: { color: string; label: string }) {
+function LegendSwatch({ color, label }: { color: string; label: string }) {
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-      <div style={{ width: 10, height: 10, background: color, borderRadius: 2 }} />
-      <span style={{ fontSize: 11, color: '#ccc' }}>{label}</span>
-    </div>
+    <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+      <span style={{
+        width: 9,
+        height: 9,
+        background: color,
+        borderRadius: 2,
+        display: 'inline-block',
+      }} />
+      <span style={{ fontSize: 11, color: c.dim }}>{label}</span>
+    </span>
   );
 }
 
 const legendStyle: React.CSSProperties = {
   display: 'flex',
-  gap: 12,
+  gap: 14,
   alignItems: 'center',
-  marginTop: 6,
-  padding: '4px 8px',
-  background: 'rgba(0,0,0,0.5)',
-  borderRadius: 4,
   flexWrap: 'wrap',
 };

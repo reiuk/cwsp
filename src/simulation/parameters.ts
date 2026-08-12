@@ -33,7 +33,7 @@ function ndDiffusion(D_cm2_s: number): number {
  *   Antibiotics: ~5e-6 cm²/s (small molecules)
  */
 const diffusionCoeffs = {
-  oxygen:            ndDiffusion(2e-7),     // 7.2 — strongly reduced: O2 delivery is perfusion-limited, not diffusion-limited
+  oxygen:            ndDiffusion(2e-7),     // 7.2, strongly reduced: O2 delivery is perfusion-limited, not diffusion-limited
   antibioticConc:    ndDiffusion(5e-6),     // 180
   tnfAlpha:          ndDiffusion(1e-7),     // 3.6
   tgfBeta:           ndDiffusion(1e-7),     // 3.6
@@ -46,12 +46,12 @@ const diffusionCoeffs = {
   apoptoticNeutrophil: ndDiffusion(1e-10),  // ~0 (dead cells don't move much)
   macrophageM1:      ndDiffusion(3e-9),     // 0.108
   macrophageM2:      ndDiffusion(3e-9),     // 0.108
-  fibroblast:        ndDiffusion(1e-9),     // 0.036 — Menon/Flegg 2012 gives 1.7e-10 cm²/s (D*=0.006) for 1D;
+  fibroblast:        ndDiffusion(1e-9),     // 0.036; Menon/Flegg 2012 gives 1.7e-10 cm²/s (D*=0.006) for 1D;
                                             // elevated ~6× for 2D cross-section where fibroblast dispersal from
                                             // wound margins into the wound center must occur on the correct timescale.
                                             // At the published value, fibroblasts remain too concentrated at margins
                                             // and the hypoxic wound incorrectly reaches 58% closure instead of stalling.
-  keratinocyte:      ndDiffusion(5e-9),     // 0.18 — Menon et al. 2012 use 4.33e-9; slightly higher for 2D surface migration
+  keratinocyte:      ndDiffusion(5e-9),     // 0.18; Menon et al. 2012 use 4.33e-9; slightly higher for 2D surface migration
   collagen:          0,                      // ECM doesn't diffuse
   fibrin:            0,                      // ECM doesn't diffuse
   vascularDensity:   ndDiffusion(5e-10),    // very slow spread (vessel sprouting, handled more by reaction)
@@ -87,7 +87,7 @@ export const DEFAULT_PARAMS: SimulationParams = {
                         // (tissue neutrophils die faster than in vitro due to inflammatory environment)
 
   // --- Macrophage kinetics (Nagaraja et al. 2017) ---
-  k_m1_recruit: 0.035,  // M1 recruitment — calibrated to peak at day 2-4 (monocyte
+  k_m1_recruit: 0.035,  // M1 recruitment, calibrated to peak at day 2-4 (monocyte
                         // extravasation lags behind neutrophils in vivo; Wilgus et al. 2013)
   k_m1_decay: 0.02,     // M1 natural decay
   k_switch: 0.08,       // M1→M2 switch (IL-10 dependent + efferocytosis)
@@ -156,7 +156,7 @@ export const DEFAULT_PARAMS: SimulationParams = {
   // --- Keratinocyte (Menon et al. 2012) ---
   // Migration speed 30-60 μm/hr → at 100μm grid spacing, ~0.3-0.6 cells/hr
   // Handled primarily through diffusion coefficient
-  k_kp: 0.08,           // proliferation rate — calibrated to ~100% closure by day 12-14 (Singer & Clark 1999)
+  k_kp: 0.08,           // proliferation rate, calibrated to ~100% closure by day 12-14 (Singer & Clark 1999)
 
   // --- Oxygen ---
   k_o2_source: 0.4,     // O2 delivery from vasculature
@@ -186,7 +186,7 @@ export const DEFAULT_PARAMS: SimulationParams = {
   // --- Wound geometry ---
   // 70 cells wide (7mm) gives re-epithelialization in ~10-14 days at published
   // keratinocyte migration speeds of 30-60 μm/hr (Menon et al. 2012).
-  // 4mm wound was too small — closed in 3-4 days, inconsistent with the
+  // 4mm wound was too small: closed in 3-4 days, inconsistent with the
   // 10-14 day timecourse from the validation targets.
   woundLeft: 15,
   woundRight: 85,
@@ -230,7 +230,7 @@ export const SCENARIOS: Record<string, ScenarioConfig> = {
   },
   hypoxic: {
     name: 'Chronic Hypoxic Wound',
-    description: 'Wound with severely reduced vasculature (8% of normal) — models chronic hypoxia from PVD/diabetes per Menon et al. 2012 (Figure 4: failed re-epithelialization)',
+    description: 'Vasculature cut to 8% of normal, the chronic hypoxia of peripheral vascular disease or diabetes (Menon et al. 2012, Fig. 4: failed re-epithelialization)',
     initialBacterialLoad: 0,
     vascularDensityMultiplier: 0.08,
     antibioticStartTick: null,

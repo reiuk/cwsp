@@ -1,30 +1,24 @@
+import { memo } from 'react';
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
 } from 'recharts';
-import { TickMetrics } from '../simulation/types';
-
-interface CompletedRun {
-  name: string;
-  metrics: TickMetrics[];
-  color: string;
-}
+import { TickMetrics, TOTAL_TICKS } from '../simulation/types';
+import { CompletedRun } from '../lib/runs';
+import { c, font } from '../theme';
 
 interface Props {
   currentMetrics: TickMetrics[];
   completedRuns: CompletedRun[];
 }
 
+// The axis reads in days but the data is indexed in hours, so convert at the
+// axis instead of rebuilding every point. Copying the metrics list to bolt a
+// `day` field onto each entry meant allocating a fresh 336-object array per
+// chart per update, which is a large part of what made playback stutter.
+const dayTick = (tick: number) => (tick / 24).toFixed(0);
+const dayLabel = (tick: unknown) => `Day ${(Number(tick) / 24).toFixed(1)}`;
 
-function tickToDay(tick: number): number {
-  return tick / 24;
-}
-
-function formatMetrics(metrics: TickMetrics[]) {
-  return metrics.map(m => ({
-    ...m,
-    day: tickToDay(m.tick),
-  }));
-}
+const axisTick = { fontSize: 9.5, fill: c.faint, fontFamily: font.mono };
 
 function SmallChart({
   title,
@@ -35,39 +29,48 @@ function SmallChart({
 }: {
   title: string;
   dataKey: keyof TickMetrics;
-  currentData: ReturnType<typeof formatMetrics>;
+  currentData: TickMetrics[];
   completedRuns: CompletedRun[];
   yDomain?: [number, number];
 }) {
   return (
-    <div style={{ marginBottom: 4 }}>
-      <div style={{ color: '#aaa', fontSize: 11, fontWeight: 600, marginBottom: 2 }}>
+    <div style={{ marginBottom: 6 }}>
+      <div style={{ color: c.dim, fontSize: 11, marginBottom: 2 }}>
         {title}
       </div>
-      <ResponsiveContainer width="100%" height={110}>
+      <ResponsiveContainer width="100%" height={104}>
         <LineChart margin={{ top: 2, right: 8, left: 0, bottom: 2 }}>
-          <CartesianGrid strokeDasharray="3 3" stroke="#333" />
+          <CartesianGrid strokeDasharray="2 4" stroke={c.lineSoft} />
           <XAxis
-            dataKey="day"
+            dataKey="tick"
             type="number"
-            domain={[0, 14]}
-            tick={{ fontSize: 10, fill: '#888' }}
+            domain={[0, TOTAL_TICKS]}
+            tickFormatter={dayTick}
+            tick={axisTick}
             tickCount={8}
+            stroke={c.line}
           />
           <YAxis
             domain={yDomain || [0, 'auto']}
-            tick={{ fontSize: 10, fill: '#888' }}
-            width={35}
+            tick={axisTick}
+            width={34}
+            stroke={c.line}
           />
           <Tooltip
-            contentStyle={{ background: '#222', border: '1px solid #444', fontSize: 11 }}
-            labelFormatter={v => `Day ${Number(v).toFixed(1)}`}
+            contentStyle={{
+              background: c.surfaceHi,
+              border: `1px solid ${c.line}`,
+              borderRadius: 4,
+              fontSize: 11,
+              fontFamily: font.mono,
+            }}
+            labelFormatter={dayLabel}
           />
           {/* Completed runs as dashed lines */}
           {completedRuns.map((run, i) => (
             <Line
               key={`completed-${i}`}
-              data={formatMetrics(run.metrics)}
+              data={run.metrics}
               dataKey={dataKey as string}
               stroke={run.color}
               strokeDasharray="5 3"
@@ -81,7 +84,7 @@ function SmallChart({
           <Line
             data={currentData}
             dataKey={dataKey as string}
-            stroke="#4a90d9"
+            stroke={c.accent}
             dot={false}
             strokeWidth={2}
             name="Current"
@@ -93,38 +96,36 @@ function SmallChart({
   );
 }
 
-export function ChartPanel({ currentMetrics, completedRuns }: Props) {
-  const data = formatMetrics(currentMetrics);
-
+export const ChartPanel = memo(function ChartPanel({ currentMetrics, completedRuns }: Props) {
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+    <div style={{ display: 'flex', flexDirection: 'column' }}>
       <SmallChart
-        title="Wound Closure (%)"
+        title="Wound closure (%)"
         dataKey="woundClosurePct"
-        currentData={data}
+        currentData={currentMetrics}
         completedRuns={completedRuns}
         yDomain={[0, 100]}
       />
       <SmallChart
-        title="Bacterial Load"
+        title="Bacterial load"
         dataKey="avgBacterialLoad"
-        currentData={data}
+        currentData={currentMetrics}
         completedRuns={completedRuns}
         yDomain={[0, 1]}
       />
       <SmallChart
-        title="Inflammatory Ratio (TNF-α / IL-10)"
+        title="Inflammatory ratio (TNF-α / IL-10)"
         dataKey="inflammatoryRatio"
-        currentData={data}
+        currentData={currentMetrics}
         completedRuns={completedRuns}
       />
       <SmallChart
-        title="Collagen Density"
+        title="Collagen density"
         dataKey="avgCollagen"
-        currentData={data}
+        currentData={currentMetrics}
         completedRuns={completedRuns}
         yDomain={[0, 1]}
       />
     </div>
   );
-}
+});

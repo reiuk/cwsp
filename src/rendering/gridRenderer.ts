@@ -1,5 +1,5 @@
 /**
- * Grid renderer — converts simulation fields to ImageData for canvas display.
+ * Grid renderer: converts simulation fields to ImageData for canvas display.
  *
  * For each overlay mode, reads different fields and maps through color LUTs.
  */
@@ -12,8 +12,12 @@ import {
 
 /**
  * Render tissue composite view.
- * Blends keratinocytes (pink), collagen (blue), fibrin (yellow),
- * fibroblasts (light purple), bacteria (green), immune cells (white dots).
+ *
+ * The palette is deliberately histological rather than decorative: the collagen
+ * matrix that makes up the bulk of the dermis reads as pale connective tissue,
+ * so the clot, the epidermis and any bacteria stand out against it instead of
+ * competing with a saturated background. Each field still maps to colour the
+ * same way it always did; only the target colours changed.
  */
 function renderTissueView(fields: SimulationFields, imageData: ImageData): void {
   const data = imageData.data;
@@ -33,68 +37,69 @@ function renderTissueView(fields: SimulationFields, imageData: ImageData): void 
       const m2 = fields.macrophageM2[idx];
       const vasc = fields.vascularDensity[idx];
 
-      // Base: dark background for wound, tan for dermis
-      let r = 30, g = 25, b = 25;
+      // Base: the debrided void, before anything has filled it
+      let r = 26, g = 22, b = 22;
 
-      // Fibrin clot: yellow
+      // Fibrin clot: amber
       if (fib > 0.01) {
-        r = Math.round(r + (220 - r) * fib);
-        g = Math.round(g + (190 - g) * fib);
-        b = Math.round(b + (50 - b) * fib);
+        const fi = Math.min(1, fib);
+        r += (216 - r) * fi;
+        g += (176 - g) * fi;
+        b += (72 - b) * fi;
       }
 
-      // Collagen: blue-purple
+      // Collagen matrix: pale connective tissue, the bulk of the dermis
       if (col > 0.01) {
-        const ci = Math.min(1, col);
-        r = Math.round(r * (1 - ci * 0.3) + 120 * ci * 0.3);
-        g = Math.round(g * (1 - ci * 0.3) + 100 * ci * 0.3);
-        b = Math.round(b * (1 - ci * 0.5) + 210 * ci * 0.5);
+        const ci = Math.min(1, col) * 0.88;
+        r += (176 - r) * ci;
+        g += (158 - g) * ci;
+        b += (144 - b) * ci;
       }
 
-      // Fibroblasts: subtle warm tint
+      // Fibroblasts: slight warm density on top of the matrix
       if (fb > 0.01) {
-        const fi = Math.min(1, fb) * 0.3;
-        r = Math.round(r + (180 - r) * fi);
-        g = Math.round(g + (140 - g) * fi);
-        b = Math.round(b + (160 - b) * fi);
+        const fi = Math.min(1, fb) * 0.18;
+        r += (204 - r) * fi;
+        g += (150 - g) * fi;
+        b += (138 - b) * fi;
       }
 
-      // Keratinocytes: pink/red (epidermis)
+      // Vasculature: perfusion reads as a red undertone
+      if (vasc > 0.15) {
+        const vi = Math.min(1, (vasc - 0.15) * 0.5) * 0.24;
+        r += (206 - r) * vi;
+        g -= g * vi * 0.32;
+        b -= b * vi * 0.32;
+      }
+
+      // Keratinocytes: epidermis, distinctly pinker than the dermis below it
       if (kc > 0.01) {
         const ki = Math.min(1, kc);
-        r = Math.round(r * (1 - ki) + 220 * ki);
-        g = Math.round(g * (1 - ki) + 140 * ki);
-        b = Math.round(b * (1 - ki) + 150 * ki);
+        r = r * (1 - ki) + 230 * ki;
+        g = g * (1 - ki) + 122 * ki;
+        b = b * (1 - ki) + 138 * ki;
       }
 
-      // Vasculature: red tint
-      if (vasc > 0.15) {
-        const vi = Math.min(1, (vasc - 0.15) * 0.15);
-        r = Math.min(255, Math.round(r + 60 * vi));
-        g = Math.round(g * (1 - vi * 0.3));
-        b = Math.round(b * (1 - vi * 0.3));
-      }
-
-      // Bacteria: green overlay
+      // Bacteria: green
       if (bac > 0.01) {
-        const bi = Math.min(1, bac) * 0.6;
-        r = Math.round(r * (1 - bi) + 80 * bi);
-        g = Math.round(g * (1 - bi) + 220 * bi);
-        b = Math.round(b * (1 - bi) + 40 * bi);
+        const bi = Math.min(1, bac) * 0.68;
+        r = r * (1 - bi) + 88 * bi;
+        g = g * (1 - bi) + 208 * bi;
+        b = b * (1 - bi) + 52 * bi;
       }
 
-      // Immune cells: bright white spots (if significant)
+      // Immune cells: bright specks
       const immune = neut + m1 + m2;
       if (immune > 0.05) {
-        const ii = Math.min(1, immune) * 0.4;
-        r = Math.min(255, Math.round(r + (255 - r) * ii));
-        g = Math.min(255, Math.round(g + (255 - g) * ii * 0.7));
-        b = Math.min(255, Math.round(b + (255 - b) * ii * 0.7));
+        const ii = Math.min(1, immune) * 0.45;
+        r += (255 - r) * ii;
+        g += (252 - g) * ii * 0.8;
+        b += (245 - b) * ii * 0.8;
       }
 
-      data[px] = Math.min(255, r);
-      data[px + 1] = Math.min(255, g);
-      data[px + 2] = Math.min(255, b);
+      data[px] = r;
+      data[px + 1] = g;
+      data[px + 2] = b;
       data[px + 3] = 255;
     }
   }

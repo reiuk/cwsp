@@ -10,7 +10,7 @@
  * Uses pre-allocated scratch arrays to avoid GC pressure.
  */
 
-/** Scratch arrays — allocated once, reused */
+/** Scratch arrays, allocated once, reused */
 const MAX_N = 100; // max dimension (NX or NY)
 const c_prime = new Float64Array(MAX_N);
 const d_prime = new Float64Array(MAX_N);

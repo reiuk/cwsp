@@ -1,7 +1,7 @@
 /**
  * Boundary condition application.
  *
- * Neumann (zero-flux) on all domain boundaries — nothing leaves the simulation.
+ * Neumann (zero-flux) on all domain boundaries: nothing leaves the simulation.
  * Dirichlet conditions at wound margins for oxygen (fixed at vasculature value).
  */
 

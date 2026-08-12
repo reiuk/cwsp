@@ -1,59 +1,62 @@
-import { TickMetrics } from '../simulation/types';
-
-export interface CompletedRun {
-  name: string;
-  metrics: TickMetrics[];
-  color: string;
-}
-
-const RUN_COLORS = ['#e74c3c', '#2ecc71', '#f39c12', '#9b59b6', '#1abc9c'];
+import { memo } from 'react';
+import { CompletedRun } from '../lib/runs';
+import { c, font, labelStyle } from '../theme';
 
 interface Props {
   runs: CompletedRun[];
   onClear: () => void;
 }
 
-export function RunHistory({ runs, onClear }: Props) {
+export const RunHistory = memo(function RunHistory({ runs, onClear }: Props) {
   if (runs.length === 0) return null;
 
   return (
-    <div style={{ borderTop: '1px solid #333', paddingTop: 8 }}>
+    <div style={{ borderTop: `1px solid ${c.lineSoft}`, paddingTop: 10 }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <span style={{ color: '#aaa', fontSize: 12, fontWeight: 600 }}>COMPLETED RUNS</span>
+        <span style={labelStyle}>Completed runs</span>
         <button
           onClick={onClear}
           style={{
             background: 'none',
             border: 'none',
-            color: '#888',
+            color: c.faint,
             cursor: 'pointer',
             fontSize: 11,
+            fontFamily: 'inherit',
+            padding: 0,
           }}
         >
-          Clear All
+          Clear
         </button>
       </div>
-      <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 4 }}>
-        {runs.map((run, i) => (
-          <div
-            key={i}
-            style={{
-              padding: '3px 8px',
-              background: '#2a2a2a',
-              border: `1px solid ${run.color}`,
-              borderRadius: 12,
-              fontSize: 11,
-              color: run.color,
-            }}
-          >
-            {run.name}
-          </div>
-        ))}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginTop: 7 }}>
+        {runs.map((run, i) => {
+          const final = run.metrics[run.metrics.length - 1];
+          return (
+            <div
+              key={i}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                gap: 8,
+                padding: '3px 8px',
+                background: c.surfaceHi,
+                borderLeft: `2px solid ${run.color}`,
+                borderRadius: 3,
+                fontSize: 11,
+              }}
+            >
+              <span style={{ color: c.dim, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {run.name}
+              </span>
+              <span style={{ color: run.color, fontFamily: font.mono, whiteSpace: 'nowrap' }}>
+                {final ? `${final.woundClosurePct.toFixed(0)}% closed` : ''}
+              </span>
+            </div>
+          );
+        })}
       </div>
     </div>
   );
-}
-
-export function getNextRunColor(index: number): string {
-  return RUN_COLORS[index % RUN_COLORS.length];
-}
+});

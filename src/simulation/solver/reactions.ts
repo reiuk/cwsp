@@ -1,5 +1,5 @@
 /**
- * Local ODE reaction system — all coupled wound biology.
+ * Local ODE reaction system: all coupled wound biology.
  *
  * Runs at every cell, every tick. No phase gating.
  * All growth-factor-dependent terms use Michaelis-Menten saturating kinetics.
@@ -81,19 +81,19 @@ export function applyReactions(
       // Quadratic Hill form with k=8: at col=0.5: 0.33; col=0.75: 0.18;
       // col=1.0: 0.11. The k=8 coefficient limits the late M1 rebound
       // (from IL-10 withdrawal as M2 emigrate) to <1.5× at absolute levels
-      // below 20% of peak — consistent with low-grade remodeling inflammation.
+      // below 20% of peak, consistent with low-grade remodeling inflammation.
       const woundMaturity = 1 / (1 + 8 * col * col);
 
       // === NEUTROPHILS ===
       // Recruited via vasculature, driven by:
-      //   - Fibrin (DAMP signal from clot — transient, decays as fibrin is degraded)
-      //   - TNF-α (inflammatory signal — weaker to prevent runaway)
+      //   - Fibrin (DAMP signal from clot: transient, decays as fibrin is degraded)
+      //   - TNF-α (inflammatory signal, weaker to prevent runaway)
       //   - Bacteria (direct chemotactic signal)
       // IL-10 actively suppresses neutrophil recruitment (pro-resolving mechanism,
       // Nagaraja et al. 2017; this ensures neutrophil resolution when inflammation resolves)
       // Fibrin acts as a DAMP (damage-associated molecular pattern) signal for
       // immune recruitment via TLR4/RAGE activation. Signal uses Hill kinetics (n=2)
-      // so it drops off steeply as fibrin is cleared — low residual fibrin levels
+      // so it drops off steeply as fibrin is cleared: low residual fibrin levels
       // (<0.2) produce negligible recruitment, ensuring proper neutrophil resolution.
       const fib2 = fib * fib;
       const K_damp = 0.25;
@@ -109,7 +109,7 @@ export function applyReactions(
       const neutRecruit = (p.k_nr * (dampSignal + mm_tnf * 0.15) + p.k_nr_bac * bac) * vasc * il10Suppress * woundMaturity;
       // Apoptosis → apoptotic neutrophil compartment
       const neutApoptosis = p.k_apop * neut;
-      // Neutrophil bactericidal activity — O2-dependent because intracellular
+      // Neutrophil bactericidal activity is O2-dependent because intracellular
       // killing relies on respiratory burst (NADPH oxidase → superoxide → HOCl).
       // Phagocytosis (engulfment) itself is O₂-independent, but the killing
       // step requires O₂. CGD patients lacking NADPH oxidase have severe
@@ -244,7 +244,7 @@ export function applyReactions(
         // + immune degradation at typical early wound levels (neut≈0.25, m1≈0.1)
         // gives total rate ~0.003+0.0014=0.0044/hr → half-life ~160hr ≈ 6.5 days.
         // With fibroblast degradation (k_fd=0.05): as fb invades, fibrin clears
-        // within 3-5 days — matching published kinetics.
+        // within 3-5 days, matching published kinetics.
         const fibDegBaseline = 0.002 * fib;
         const fibDegImmune = 0.004 * (neut + m1) * fib;
         fib = clamp(fib + (-(fibDegFb + fibDegBaseline + fibDegImmune)) * subDt);
@@ -285,13 +285,13 @@ export function applyReactions(
         // damage keratinocytes but at clinically observed levels do not
         // cause margin regression (Schierle et al. 2009; Pastar et al.
         // 2013 show stalling, not regression). Rate 0.003/hr at bac=0.75
-        // → ~310hr half-life — slow enough for stable margins.
+        // → ~310hr half-life, slow enough for stable margins.
         const bacToxicity = 0.004 * totalBac * kc;
-        // Without substrate, keratinocytes detach (anoikis — programmed death
+        // Without substrate, keratinocytes detach (anoikis: programmed death
         // from loss of ECM anchorage). However, established keratinocytes
         // produce their own basement membrane proteins (laminin-5, collagen IV)
         // and are more resistant to anoikis than freshly seeded cells.
-        // Rate 0.005/hr → ~140hr half-life — slow enough that established
+        // Rate 0.005/hr → ~140hr half-life, slow enough that established
         // keratinocytes persist while substrate rebuilds, preventing the
         // non-physical advance-retreat pattern seen with faster anoikis.
         // Migration restriction to supported areas is handled by the
@@ -322,7 +322,7 @@ export function applyReactions(
 
       // === BACTERIA (planktonic) ===
       if (bac > 1e-6 || bio > 1e-6) {
-        // S. aureus is a facultative anaerobe — grows aerobically via TCA cycle
+        // S. aureus is a facultative anaerobe: it grows aerobically via TCA cycle
         // and anaerobically via fermentation. Anaerobic generation time ~80 min vs
         // aerobic ~35 min (Belay & Rasooly 2002, PMID 11808796), giving anaerobic/aerobic
         // rate ratio of ~0.44. Using mm_o2 alone would incorrectly make growth zero
@@ -333,7 +333,7 @@ export function applyReactions(
         // (fibrin-rich, collagen-depleted, poorly vascularised) but cannot sustain
         // populations in intact tissue with functional immune surveillance and
         // intact epithelial/ECM barriers. In wound bed/surface, K=1 (full capacity).
-        // In intact tissue, K is derived from damage state — K → 0 causes any
+        // In intact tissue, K is derived from damage state, and K → 0 causes any
         // trace bacteria that diffuse in to die rapidly.
         const isWound = tissue === TissueType.WoundBed || tissue === TissueType.WoundSurface;
         const K_local = isWound ? 1.0 : Math.max(1e-3, clamp(fib * 0.6 + (1 - col) * 0.3 + (1 - vasc) * 0.1));

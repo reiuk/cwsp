@@ -29,7 +29,7 @@ export const TissueType = {
   Epidermis: 0,
   Dermis: 1,
   WoundBed: 2,
-  WoundSurface: 3, // top of wound bed — where keratinocytes migrate
+  WoundSurface: 3, // top of wound bed, where keratinocytes migrate
 } as const;
 
 /** Diffusion coefficients for each field (non-dimensional) */
@@ -63,7 +63,7 @@ export interface ChemotaxisSpec {
   chi: number; // chemotactic sensitivity
 }
 
-/** Simulation parameters — all non-dimensional */
+/** Simulation parameters, all non-dimensional */
 export interface SimulationParams {
   // --- Diffusion ---
   diffusion: DiffusionCoeffs;

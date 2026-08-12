@@ -1,7 +1,8 @@
 {
-  "name": "cwsp-temp",
+  "name": "cwsp",
   "private": true,
-  "version": "0.0.0",
+  "version": "1.0.0",
+  "description": "Browser reaction-diffusion simulation of acute wound healing over a 10 x 5 mm skin cross-section.",
   "type": "module",
   "scripts": {
     "dev": "vite",

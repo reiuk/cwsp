@@ -1,5 +1,5 @@
 /**
- * Scenario management — creates custom scenarios from slider values.
+ * Scenario management: creates custom scenarios from slider values.
  */
 
 import { ScenarioConfig } from './types';
